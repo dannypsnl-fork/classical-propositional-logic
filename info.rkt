@@ -1,6 +1,7 @@
 #lang info
 (define collection "classical-propositional-logic")
-(define deps '("base"))
+(define deps '("base"
+               "nanopass"))
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib" "cover"))
 (define pkg-desc "Description Here")
 (define version "0.0")
