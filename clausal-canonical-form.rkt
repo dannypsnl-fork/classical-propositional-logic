@@ -1,4 +1,8 @@
 #lang nanopass
+(provide K->clausal
+         clausal->canonical
+         canonical->cnf)
+
 (require "classical-logic.rkt")
 
 (define-pass K->clausal : K (e) -> K ()
@@ -26,7 +30,7 @@
            (∧ e0 e1))
         (+ (∨ e* ...)
            (∧ e* ...))))
-(define-pass clausal->canonical : K (e) -> K-canonical ()
+(define-pass clausal-fuse-clause : K (e) -> K-canonical ()
   (T : Expr (e) -> Expr ()
      [(∨ (∨ ,[e0] ,[e1]) ,[e2]) `(∨ ,e0 ,e1 ,e2)]
      [(∨ ,[e0] (∨ ,[e1] ,[e2])) `(∨ ,e0 ,e1 ,e2)]
@@ -34,6 +38,38 @@
      [(∧ ,[e0] (∧ ,[e1] ,[e2])) `(∨ ,e0 ,e1 ,e2)]
      [(∨ ,[e0] ,[e1]) `(∨ ,e0 ,e1)]
      [(∧ ,[e0] ,[e1]) `(∧ ,e0 ,e1)]))
+
+(define-pass remove-same-twice-from-clause : K-canonical (e) -> K-canonical ()
+  (T : Expr (e) -> Expr ()
+     [(∨ ,e* ...) `(∨ ,(remove-duplicates e*) ...)]))
+
+(define-pass eliminate-bottom : K-canonical (e) -> K-canonical ()
+  (T : Expr (e) -> Expr ()
+     [(∨ ,e* ...)
+      (define new-e* (remove* '(⊥) e*))
+      (cond
+        [(empty? new-e*) '⊥]
+        [(= (length new-e*) 1) (first new-e*)]
+        [else `(∨ ,new-e* ...)])]))
+
+(define-pass neg : K-canonical (e) -> K-canonical ()
+  (T : Expr (e) -> Expr ()
+     [(¬ ,e) e]
+     [else `(¬ ,e)]))
+(define-pass offset-literal-and-its-negation : K-canonical (e) -> K-canonical ()
+  (T : Expr (e) -> Expr ()
+     [(∨ ,e* ...)
+      (define new-e* (remove* (map neg e*) e*))
+      (if (empty? new-e*)
+          '⊤
+          `(∨ ,new-e* ...))]))
+
+(define clausal->canonical
+  (compose offset-literal-and-its-negation
+           eliminate-bottom
+           remove-same-twice-from-clause
+           clausal-fuse-clause))
+
 (define-pass canonical->cnf : K-canonical (e) -> * ()
   (Pos : Expr (e) -> * ()
        [,x (set (cons #t x))]
@@ -53,18 +89,23 @@
        [(¬ ,e) (Pos e)])
   (Pos e))
 
-(module+ main
-  (define t (parse-K '(→ (∨ A B) (¬ (∧ (¬ A) (¬ B))))))
-  (define t2 (parse-K '(∨ (¬ (∨ (¬ X) Y))
-                          (∨ (¬ Y) Z))))
+(module+ test
+  (require rackunit)
 
-  (clausal->canonical (K->clausal t))
-  ; FIXME: it haven't removed twice  ¬Y from the result, have to do more
-  (clausal->canonical (K->clausal t2))
+  (define helper-K->canonical (compose unparse-K-canonical
+                                       clausal->canonical
+                                       K->clausal
+                                       parse-K))
 
-  (define K->cnf (compose canonical->cnf
-                          clausal->canonical
-                          K->clausal))
+  (check-equal? (helper-K->canonical '(∨ (¬ (∨ (¬ X) Y))
+                                         (∨ (¬ Y) Z)))
+                '(∧ (∨ X (¬ Y) Z) (∨ (¬ Y) Z)))
 
-  (K->cnf t)
-  (K->cnf t2))
+  (check-equal? (helper-K->canonical '(∨ C (∨ ⊤ (∨ A B))))
+                '⊤)
+
+  (check-equal? (helper-K->canonical '(∨ A (¬ A)))
+                '⊤)
+
+  (check-equal? (helper-K->canonical '(∨ ⊥ A))
+                'A))
