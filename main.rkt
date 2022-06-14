@@ -1,24 +1,18 @@
 #lang racket
+(require "classical-logic.rkt"
+         "clausal-canonical-form.rkt")
 
 (module+ main
-  (require racket/cmdline)
+  (define t '(→ (∨ A B) (¬ (∧ (¬ A) (¬ B)))))
+  (define t2 '(∨ (¬ (∨ (¬ X) Y))
+                 (∨ (¬ Y) Z)))
 
-  (define who (make-parameter "world"))
-  (command-line
-    #:program "classical-propositional-logic"
-    #:once-each
-    [("-n" "--name") name "Who to say hello to" (who name)]
-    #:args ()
-    (printf "hello ~a~n" (who))))
+  (define final (compose canonical->cnf
+                         clausal->canonical
+                         K->clausal
+                         parse-K))
 
-(module+ test
-  (require rackunit)
-
-  (define expected 1)
-  (define actual 1)
-
-  (test-case
-    "Example Test"
-    (check-equal? actual expected))
-
-  (test-equal? "Shortcut Equal Test" actual expected))
+  (final t)
+  (final t2)
+  (final '(∨ A (¬ A)))
+  (final '(∨ (¬ A) (¬ A))))
