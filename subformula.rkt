@@ -1,5 +1,5 @@
 #lang racket/base
-(require "classical-logic.rkt"
+(require "propositional-logic.rkt"
          nanopass/base
          racket/set)
 
