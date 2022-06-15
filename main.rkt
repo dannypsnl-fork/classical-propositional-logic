@@ -1,5 +1,5 @@
 #lang racket
-(require "classical-logic.rkt"
+(require "propositional-logic.rkt"
          "clausal-canonical-form.rkt")
 
 (define K->cnf (compose canonical->cnf
@@ -20,8 +20,7 @@
     (if (and (eq? (not (car left)) (car right))
              (eq? (cdr left) (cdr right)))
         (set-subtract rs (set left right))
-        rs))
-  )
+        rs)))
 (define (resolution kb-rules query)
   (define new (set))
   (let/ec return

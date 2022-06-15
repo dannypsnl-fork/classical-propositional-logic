@@ -3,7 +3,7 @@
          clausal->canonical
          canonical->cnf)
 
-(require "classical-logic.rkt")
+(require "propositional-logic.rkt")
 
 (define-pass K->clausal : K (e) -> K ()
   (T : Expr (e) -> Expr ()

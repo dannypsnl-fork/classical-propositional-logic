@@ -1,5 +1,5 @@
 #lang info
-(define collection "classical-propositional-logic")
+(define collection "classical-logic")
 (define deps '("base"
                "nanopass"))
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib" "cover"))
