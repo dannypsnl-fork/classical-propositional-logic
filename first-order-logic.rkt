@@ -1,6 +1,7 @@
 #lang racket/base
 (provide KF
-         parse-KF)
+         parse-KF
+         unparse-KF)
 (require nanopass
          "propositional-logic.rkt")
 
