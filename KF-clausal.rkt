@@ -1,5 +1,6 @@
 #lang nanopass
-(provide KF->clausal)
+(provide KF->clausal
+         KF3)
 (require "first-order-logic.rkt"
          (only-in list-util zip))
 
@@ -140,11 +141,17 @@
                              lift-quantifier
                              uniquify))
 
-(module+ main
-  (define all (compose KF->clausal
-                       parse-KF))
+(define all (compose unparse-KF3
+                     KF->clausal
+                     parse-KF))
 
-  (all '(→ A (→ B C)))
+(module+ test
+  (require rackunit)
+  (check-equal? (all '(→ A (→ B C)))
+                '(∨ (¬ A) (∨ (¬ B) C)))
+  (check-equal? (all '(∨ A (∧ B C)))
+                '(∧ (∨ B A) (∨ C A))))
+
+(module+ main
   (all '(∃ (a) (∀ (a) (D a))))
-  (all '(∃ (a) (∀ (b) (D a))))
-  )
+  (all '(∃ (a) (∀ (b) (D a)))))
