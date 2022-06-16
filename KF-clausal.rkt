@@ -5,7 +5,6 @@
          "stable.rkt"
          (only-in list-util zip))
 
-
 (define-pass subst : KF (e subst-map) -> KF ()
   (Expr : Term (e) -> Term ()
         [,x (guard (assoc x subst-map))
