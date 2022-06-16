@@ -1,6 +1,7 @@
 #lang info
 (define collection "classical-logic")
 (define deps '("base"
+               "list-util"
                "nanopass"))
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib" "cover"))
 (define pkg-desc "Description Here")
