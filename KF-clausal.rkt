@@ -2,14 +2,9 @@
 (provide KF->clausal
          KF3)
 (require "first-order-logic.rkt"
+         "stable.rkt"
          (only-in list-util zip))
 
-(define (stable e T unparse)
-  (let loop ([e-s e])
-    (define e-t (T e-s))
-    (if (equal? (unparse e-t) (unparse e-s))
-        e-t
-        (loop e-t))))
 
 (define-pass subst : KF (e subst-map) -> KF ()
   (Expr : Term (e) -> Term ()

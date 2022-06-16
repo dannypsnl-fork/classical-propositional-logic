@@ -3,7 +3,8 @@
          clausal->canonical
          canonical->cnf)
 
-(require "propositional-logic.rkt")
+(require "propositional-logic.rkt"
+         "stable.rkt")
 
 (define-pass K->clausal : K (e) -> K ()
   (T : Expr (e) -> Expr ()
@@ -17,11 +18,7 @@
      [(∨ ,⊤ ,e) ⊤]
      [(∨ ,e ,⊤) ⊤]
      [(¬ (¬ ,[e])) e])
-  (let loop ([e-s e])
-    (define e-t (T e-s))
-    (if (equal? (unparse-K e-t) (unparse-K e-s))
-        e-t
-        (loop e-t))))
+  (stable e T unparse-K))
 
 (define-language K-canonical
   (extends K)
