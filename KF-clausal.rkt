@@ -1,6 +1,7 @@
 #lang nanopass
 (provide KF->clausal)
-(require "first-order-logic.rkt")
+(require "first-order-logic.rkt"
+         (only-in list-util zip))
 
 (define (stable e T unparse)
   (let loop ([e-s e])
@@ -8,6 +9,22 @@
     (if (equal? (unparse e-t) (unparse e-s))
         e-t
         (loop e-t))))
+
+(define-pass subst : KF (e subst-map) -> KF ()
+  (Expr : Term (e) -> Term ()
+        [,x (guard (assoc x subst-map))
+            (cdr (assoc x subst-map))]))
+(define-pass uniquify : KF (e) -> KF ()
+  (definitions
+    (define (gen-newvs vs)
+      (map gensym vs)))
+  (Expr : Expr (e) -> Expr ()
+        [(∃ (,x ...) ,[e])
+         (define new-vs (gen-newvs x))
+         `(∃ (,new-vs ...) ,(subst e (zip x new-vs)))]
+        [(∀ (,x ...) ,[e])
+         (define new-vs (gen-newvs x))
+         `(∀ (,new-vs ...) ,(subst e (zip x new-vs)))]))
 
 (define-pass lift-quantifier : KF (e) -> KF ()
   (T : Expr (e) -> Expr ()
@@ -80,13 +97,31 @@
      [(→ ,[a0] ,[a1])
       `(∨ (¬ ,a0) ,a1)]))
 
-(define KF->clausal (compose remove-implication
+(define-language KF2
+  (extends KF1)
+  (Prenex (prenex)
+          (- (∃ (x* ...) prenex))))
+(define-pass subst-skolem : KF2 (e subst-map) -> KF2 ()
+  (T : Term (e) -> Term ()
+     [,x (guard (assoc x subst-map))
+         (cdr (assoc x subst-map))]
+     ))
+(define-pass skolem : KF1 (e) -> KF2 ()
+  (T : Prenex (e) -> Prenex ()
+     [(∃ (,x* ...) ,[e])
+      (subst-skolem e (zip x* (map (lambda (x) `(,(gensym 'Skolem) ,x)) x*)))]))
+
+(define KF->clausal (compose skolem
+                             remove-implication
                              prenex-form
-                             lift-quantifier))
+                             lift-quantifier
+                             uniquify))
 
 (module+ main
   (define all (compose KF->clausal
                        parse-KF))
 
   (all '(→ A (→ B C)))
+  (all '(∃ (a) (∀ (a) (D a))))
+  (all '(∃ (a) (∀ (b) (D a))))
   )
