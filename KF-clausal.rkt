@@ -104,14 +104,23 @@
 (define-pass subst-skolem : KF2 (e subst-map) -> KF2 ()
   (T : Term (e) -> Term ()
      [,x (guard (assoc x subst-map))
-         (cdr (assoc x subst-map))]
-     ))
+         (cdr (assoc x subst-map))]))
 (define-pass skolem : KF1 (e) -> KF2 ()
   (T : Prenex (e) -> Prenex ()
      [(∃ (,x* ...) ,[e])
       (subst-skolem e (zip x* (map (lambda (x) `(,(gensym 'Skolem) ,x)) x*)))]))
 
-(define KF->clausal (compose skolem
+(define-language KF3
+  (extends KF2)
+  (Expr (e)
+        (- prenex)
+        (+ a)))
+(define-pass remove-∀ : KF2 (e) -> KF3 ()
+  (T : Expr (e) -> Expr ()
+     [(∀ (,x* ...) ,[e]) e]))
+
+(define KF->clausal (compose remove-∀
+                             skolem
                              remove-implication
                              prenex-form
                              lift-quantifier
