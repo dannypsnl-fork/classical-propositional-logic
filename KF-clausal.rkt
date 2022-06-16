@@ -119,7 +119,21 @@
   (T : Expr (e) -> Expr ()
      [(∀ (,x* ...) ,[e]) e]))
 
-(define KF->clausal (compose remove-∀
+(define-pass ~~>clausal : KF3 (e) -> KF3 ()
+  (T : Expr (e) -> Expr ()
+     [(∨ ,a2 (∧ ,a0 ,a1)) `(∧ (∨ ,a0 ,a2) (∨ ,a1 ,a2))]
+     [(∨ (∧ ,a0 ,a1) ,a2) `(∧ (∨ ,a0 ,a2) (∨ ,a1 ,a2))]
+     [(¬ (∧ ,a0 ,a1)) `(∨ (¬ ,a0) (¬ ,a1))]
+     [(¬ (∨ ,a0 ,a1)) `(∧ (¬ ,a0) (¬ ,a1))]
+     [(¬ ,⊥) '⊤]
+     [(¬ ,⊤) '⊥]
+     [(∨ ,⊤ ,a) ⊤]
+     [(∨ ,a ,⊤) ⊤]
+     [(¬ (¬ ,a)) a])
+  (stable e T unparse-KF3))
+
+(define KF->clausal (compose ~~>clausal
+                             remove-∀
                              skolem
                              remove-implication
                              prenex-form
