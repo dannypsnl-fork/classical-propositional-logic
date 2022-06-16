@@ -1,5 +1,6 @@
 #lang racket/base
-(provide KF)
+(provide KF
+         parse-KF)
 (require nanopass
          "propositional-logic.rkt")
 
@@ -13,3 +14,5 @@
   (Term (t)
         (+ x #| variable |#
            (x t* ...) #| predicate |#)))
+
+(define-parser parse-KF KF)
