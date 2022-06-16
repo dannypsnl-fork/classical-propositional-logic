@@ -1,5 +1,6 @@
 #lang nanopass
-(provide KF->canonical)
+(provide KF->canonical
+         KF-canonical)
 (require "KF-clausal.rkt")
 
 (define (top? e) (eq? e '⊤))
