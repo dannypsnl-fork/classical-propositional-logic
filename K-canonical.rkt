@@ -1,24 +1,9 @@
 #lang nanopass
-(provide K->clausal
-         clausal->canonical
-         canonical->cnf)
-
+(provide K->canonical
+         K-canonical)
 (require "propositional-logic.rkt"
+         "K-clausal.rkt"
          "stable.rkt")
-
-(define-pass K->clausal : K (e) -> K ()
-  (T : Expr (e) -> Expr ()
-     [(→ ,[e0] ,[e1]) `(∨ (¬ ,e0) ,e1)]
-     [(∨ ,[e2] (∧ ,[e0] ,[e1])) `(∧ (∨ ,e0 ,e2) (∨ ,e1 ,e2))]
-     [(∨ (∧ ,[e0] ,[e1]) ,[e2]) `(∧ (∨ ,e0 ,e2) (∨ ,e1 ,e2))]
-     [(¬ (∧ ,[e0] ,[e1])) `(∨ (¬ ,e0) (¬ ,e1))]
-     [(¬ (∨ ,[e0] ,[e1])) `(∧ (¬ ,e0) (¬ ,e1))]
-     [(¬ ,⊥) '⊤]
-     [(¬ ,⊤) '⊥]
-     [(∨ ,⊤ ,e) ⊤]
-     [(∨ ,e ,⊤) ⊤]
-     [(¬ (¬ ,[e])) e])
-  (stable e T unparse-K))
 
 (define-language K-canonical
   (extends K)
@@ -61,38 +46,19 @@
           '⊤
           `(∨ ,new-e* ...))]))
 
-(define clausal->canonical
+(define K->canonical
   (compose offset-literal-and-its-negation
            eliminate-bottom
            remove-same-twice-from-clause
-           clausal-fuse-clause))
-
-(define-pass canonical->cnf : K-canonical (e) -> * ()
-  (Pos : Expr (e) -> * ()
-       [,x (set (cons #t x))]
-       [,⊤ (set)]
-       [,⊥ (set (set))]
-       [(→ ,e0 ,e1) (set-union (Neg e0) (Pos e1))]
-       [(∧ ,e* ...) (apply set (map Pos e*))]
-       [(∨ ,e* ...) (apply set-union (map Pos e*))]
-       [(¬ ,e) (Neg e)])
-  (Neg : Expr (e) -> * ()
-       [,x (set (cons #f x))]
-       [,⊤ (set (set))]
-       [,⊥ (set)]
-       [(→ ,e0 ,e1) (set (Pos e0) (Neg e1))]
-       [(∧ ,e* ...) (apply set-union (map Neg e*))]
-       [(∨ ,e* ...) (apply set (map Neg e*))]
-       [(¬ ,e) (Pos e)])
-  (Pos e))
+           clausal-fuse-clause
+           K->clausal
+           parse-K))
 
 (module+ test
   (require rackunit)
 
   (define helper-K->canonical (compose unparse-K-canonical
-                                       clausal->canonical
-                                       K->clausal
-                                       parse-K))
+                                       K->canonical))
 
   (check-equal? (helper-K->canonical '(∨ (¬ (∨ (¬ X) Y))
                                          (∨ (¬ Y) Z)))

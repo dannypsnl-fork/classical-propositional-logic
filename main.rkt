@@ -1,11 +1,6 @@
 #lang racket
 (require "propositional-logic.rkt"
-         "clausal-canonical-form.rkt")
-
-(define K->cnf (compose canonical->cnf
-                        clausal->canonical
-                        K->clausal
-                        parse-K))
+         "K-cnf.rkt")
 
 (define (resolve r1 r2)
   (define (->set r)
