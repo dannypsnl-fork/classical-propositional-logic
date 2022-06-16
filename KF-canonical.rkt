@@ -2,30 +2,51 @@
 (provide KF->canonical)
 (require "KF-clausal.rkt")
 
+(define (top? e) (eq? e '⊤))
+(define (bot? e) (eq? e '⊥))
+(define-language KF4
+  (terminals
+   (symbol (x))
+   (top (⊤))
+   (bot (⊥)))
+  (Expr (e)
+        t #| term |#
+        ⊤ #| truth |#
+        ⊥ #| falsity |#
+        (∧ e0 e1) #| conjuction |#
+        (∨ e0 e1) #| disjunction |#
+        (¬ e) #| negation |#)
+  (Term (t)
+        x #| propositional-variable |#
+        (x t* ...) #| predicate |#))
+
+(define-pass convert : KF3 (e) -> KF4 ()
+  (T : Expr (e) -> Expr ()))
+
 (define-language KF-canonical
-  (extends KF3)
-  (A (a)
-     (- (∨ a0 a1)
-        (∧ a0 a1))
-     (+ (∨ a* ...)
-        (∧ a* ...))))
-(define-pass clausal-fuse-clause : KF3 (e) -> KF-canonical ()
+  (extends KF4)
+  (Expr (e)
+        (- (∨ e0 e1)
+           (∧ e0 e1))
+        (+ (∨ e* ...)
+           (∧ e* ...))))
+(define-pass clausal-fuse-clause : KF4 (e) -> KF-canonical ()
   (T : Expr (e) -> Expr ()
-     [(∨ (∨ ,[a0] ,[a1]) ,[a2]) `(∨ ,a0 ,a1 ,a2)]
-     [(∨ ,[a0] (∨ ,[a1] ,[a2])) `(∨ ,a0 ,a1 ,a2)]
-     [(∧ (∧ ,[a0] ,[a1]) ,[a2]) `(∨ ,a0 ,a1 ,a2)]
-     [(∧ ,[a0] (∧ ,[a1] ,[a2])) `(∨ ,a0 ,a1 ,a2)]
-     [(∨ ,[a0] ,[a1]) `(∨ ,a0 ,a1)]
-     [(∧ ,[a0] ,[a1]) `(∧ ,a0 ,a1)]))
+     [(∨ (∨ ,[e0] ,[e1]) ,[e2]) `(∨ ,e0 ,e1 ,e2)]
+     [(∨ ,[e0] (∨ ,[e1] ,[e2])) `(∨ ,e0 ,e1 ,e2)]
+     [(∨ ,[e0] ,[e1]) `(∨ ,e0 ,e1)]
+     [(∧ (∧ ,[e0] ,[e1]) ,[e2]) `(∧ ,e0 ,e1 ,e2)]
+     [(∧ ,[e0] (∧ ,[e1] ,[e2])) `(∧ ,e0 ,e1 ,e2)]
+     [(∧ ,[e0] ,[e1]) `(∧ ,e0 ,e1)]))
 
 (define-pass remove-same-twice-from-clause : KF-canonical (e) -> KF-canonical ()
   (T : Expr (e) -> Expr ()
-     [(∨ ,[a*] ...) `(∨ ,(remove-duplicates a*) ...)]))
+     [(∨ ,[e*] ...) `(∨ ,(remove-duplicates e*) ...)]))
 
 (define-pass eliminate-bottom : KF-canonical (e) -> KF-canonical ()
   (T : Expr (e) -> Expr ()
-     [(∨ ,[a*] ...)
-      (define new-e* (remove* '(⊥) a*))
+     [(∨ ,[e*] ...)
+      (define new-e* (remove* '(⊥) e*))
       (cond
         [(empty? new-e*) '⊥]
         [(= (length new-e*) 1) (first new-e*)]
@@ -33,28 +54,35 @@
 
 (define-pass neg : KF-canonical (e) -> KF-canonical ()
   (T : Expr (e) -> Expr ()
-     [(¬ ,a) a]
+     [(¬ ,e) e]
      [else `(¬ ,e)]))
 (define-pass offset-literal-and-its-negation : KF-canonical (e) -> KF-canonical ()
   (T : Expr (e) -> Expr ()
-     [(∨ ,[a*] ...)
-      (define new-e* (remove* (map neg a*) a*))
-      (if (empty? new-e*)
-          '⊤
-          `(∨ ,new-e* ...))]))
+     [(∨ ,[e*] ...)
+      (define new-e* (remove* (map neg e*) e*))
+      (cond
+        [(empty? new-e*) '⊤]
+        [(= (length new-e*) 1) (first new-e*)]
+        [else `(∨ ,new-e* ...)])]))
 
 (define KF->canonical (compose offset-literal-and-its-negation
                                eliminate-bottom
                                remove-same-twice-from-clause
                                clausal-fuse-clause
+                               convert
                                KF->clausal))
 
-(module+ main
+(module+ test
+  (require rackunit)
   (require "first-order-logic.rkt")
 
   (define all (compose unparse-KF-canonical
                        KF->canonical
                        parse-KF))
 
-  (all '(∨ A (∨ B C)))
-  )
+  (check-equal? (all '(∨ A (∨ B C)))
+                '(∨ A B C))
+  (check-equal? (all '(∨ A (¬ A)))
+                '⊤)
+  (check-equal? (all '(∨ A (∨ (¬ A) B)))
+                'B))
