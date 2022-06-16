@@ -41,7 +41,7 @@
      [(∧ ,d* ...)
       (map D d*)]
      [,d (list (D d))])
-  (filter identity (C e)))
+  (list->set (filter identity (C e))))
 
 (define KF->cnf (compose canonical->cnf
                          form-canonical
