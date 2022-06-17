@@ -100,7 +100,7 @@
   (T : Term (e) -> Term ()
      [,x (guard (assoc x subst-map))
          (cdr (assoc x subst-map))]))
-(define-pass skolem : KF1 (e) -> KF2 ()
+(define-pass skolemize : KF1 (e) -> KF2 ()
   (T : Prenex (e) -> Prenex ()
      [(∃ (,x* ...) ,[e])
       (subst-skolem e (zip x* (map (lambda (x) `(,(gensym 'Skolem) ,x)) x*)))]))
@@ -129,7 +129,7 @@
 
 (define KF->clausal (compose ~~>clausal
                              remove-∀
-                             skolem
+                             skolemize
                              remove-implication
                              prenex-form
                              lift-quantifier
