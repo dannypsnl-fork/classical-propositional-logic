@@ -101,9 +101,14 @@
      [,x (guard (assoc x subst-map))
          (cdr (assoc x subst-map))]))
 (define-pass skolemize : KF1 (e) -> KF2 ()
-  (T : Prenex (e) -> Prenex ()
-     [(∃ (,x* ...) ,[e])
-      (subst-skolem e (zip x* (map (lambda (x) `(,(gensym 'Skolem) ,x)) x*)))]))
+  (T : Prenex (e universal-vars) -> Prenex ()
+     [(∀ (,x* ...) ,prenex)
+      (T prenex (append universal-vars x*))]
+     [(∃ (,x* ...) ,[prenex])
+      (subst-skolem prenex (zip x* (map (lambda (x) `(,(gensym 'Skolem) ,universal-vars ...)) x*)))
+      ]
+     )
+  (T e '()))
 
 (define-language KF3
   (extends KF2)
@@ -148,4 +153,5 @@
 
 (module+ main
   (all '(∃ (a) (∀ (a) (D a))))
-  (all '(∃ (a) (∀ (b) (D a)))))
+  (all '(∃ (a) (∀ (b) (D a))))
+  (all '(∀ (b) (∃ (a) (D a)))))
