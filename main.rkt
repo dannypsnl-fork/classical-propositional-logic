@@ -4,7 +4,7 @@
 
 (define (make-resolution logic->cnf unifier)
   (define (resolve r1 r2)
-    (define resolvents (set-union (set-subtract r1 r2) (set-subtract r2 r1)))
+    (define resolvents (set-union r1 r2))
     (for/fold ([rs resolvents])
               ([product (in-combinations (set->list resolvents) 2)])
       (define left (first product))
@@ -15,10 +15,9 @@
           rs)))
   (define (resolution kb-rules query)
     (define new (set))
-    (define q (logic->cnf `(¬ ,query)))
     (let/ec return
-      (let loop ([kb (logic->cnf kb-rules)])
-        (for ([c (in-combinations (append (set->list kb) (set->list q)) 2)])
+      (let loop ([kb (logic->cnf `(∧ (¬ ,query) ,kb-rules))])
+        (for ([c (in-combinations (set->list kb) 2)])
           (define resolvents (resolve (first c) (second c)))
           (if (set-empty? resolvents)
               (return 'contradiction)
