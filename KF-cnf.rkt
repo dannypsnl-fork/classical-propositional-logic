@@ -1,5 +1,6 @@
 #lang nanopass
-(provide KF->cnf)
+(provide KF->cnf
+         KF-internal->cnf)
 (require "first-order-logic.rkt"
          "KF-canonical.rkt")
 
@@ -43,9 +44,11 @@
      [,d (list (D d))])
   (list->set (filter identity (C e))))
 
-(define KF->cnf (compose canonical->cnf
-                         form-canonical
-                         KF->canonical
+(define KF-internal->cnf (compose canonical->cnf
+                                  form-canonical
+                                  KF->canonical))
+
+(define KF->cnf (compose KF-internal->cnf
                          parse-KF))
 
 (module+ main
