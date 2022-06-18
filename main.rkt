@@ -1,18 +1,12 @@
 #lang racket
-(require "propositional-logic.rkt"
-         "K-cnf.rkt"
-         "first-order-logic.rkt"
+(require "K-cnf.rkt"
          "KF-cnf.rkt")
 
 (define (make-resolution logic->cnf unifier)
   (define (resolve r1 r2)
-    (define (->set r)
-      (if (set? r) r (set r)))
-    (define resolvents (set-union (->set r1) (->set r2)))
-    (define (->list r)
-      (if (set? r) (set->list r) (list r)))
+    (define resolvents (set-union (set-subtract r1 r2) (set-subtract r2 r1)))
     (for/fold ([rs resolvents])
-              ([product (cartesian-product (->list r1) (->list r2))])
+              ([product (in-combinations (set->list resolvents) 2)])
       (define left (first product))
       (define right (second product))
       (if (and (eq? (not (car left)) (car right))
@@ -21,33 +15,38 @@
           rs)))
   (define (resolution kb-rules query)
     (define new (set))
+    (define q (logic->cnf `(¬ ,query)))
     (let/ec return
-      (let loop ([kb (logic->cnf `(∧ (¬ ,query) ,kb-rules))])
-        (for ([c (in-combinations (set->list kb) 2)])
+      (let loop ([kb (logic->cnf kb-rules)])
+        (for ([c (in-combinations (append (set->list kb) (set->list q)) 2)])
           (define resolvents (resolve (first c) (second c)))
           (if (set-empty? resolvents)
-              (return 'correct)
+              (return 'contradiction)
               (begin
-                (set! new (set-union new resolvents)))))
+                (set! new
+                      (set-add new
+                               resolvents)
+                      ))))
         (if (subset? new kb)
-            (return 'contradiction)
+            (return 'correct)
             (begin
               (loop (set-union kb new)))))))
   resolution)
 
 (module+ main
   (define resolution-K (make-resolution K->cnf eq?))
+  ; FIXME: expected correct
   (resolution-K '(∧
-                  (∧ (∨ (¬ A) B)
-                     (∨ (¬ B) C))
+                  (∧ (→ A B)
+                     (→ B C))
                   A)
                 'C)
   (resolution-K '(¬ A)
                 'A)
 
   (define resolution-KF (make-resolution KF->cnf eq?))
-  (resolution-KF '(∧ (∀ (a) (→ (Red a)
-                               (Sweet a)))
-                     (Red Apple))
-                 '(Sweet Apple))
+  ; (resolution-KF '(∧ (∀ (a) (→ (Red a)
+  ;                              (Sweet a)))
+  ;                    (Red Apple))
+  ;                '(Sweet Apple))
   )
