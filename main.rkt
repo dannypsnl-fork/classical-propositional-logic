@@ -15,37 +15,36 @@
           rs)))
   (define (resolution kb-rules query)
     (define new (set))
+    (define not-q (logic->cnf `(¬ ,query)))
     (let/ec return
-      (let loop ([kb (logic->cnf `(∧ (¬ ,query) ,kb-rules))])
-        (for ([c (in-combinations (set->list kb) 2)])
+      (let loop ([kb (apply set-union (map logic->cnf kb-rules))])
+        (for ([c (in-combinations (append (set->list kb) (set->list not-q)) 2)])
           (define resolvents (resolve (first c) (second c)))
           (if (set-empty? resolvents)
-              (return 'contradiction)
+              (return #t)
               (begin
                 (set! new
                       (set-add new
                                resolvents)
                       ))))
         (if (subset? new kb)
-            (return 'correct)
+            (return #f)
             (begin
               (loop (set-union kb new)))))))
   resolution)
 
 (module+ main
   (define resolution-K (make-resolution K->cnf eq?))
-  ; FIXME: expected correct
-  (resolution-K '(∧
-                  (∧ (→ A B)
-                     (→ B C))
+  (resolution-K '((→ A B)
+                  (→ B C)
                   A)
                 'C)
-  (resolution-K '(¬ A)
+  (resolution-K '((¬ A))
                 'A)
 
   (define resolution-KF (make-resolution KF->cnf eq?))
-  ; (resolution-KF '(∧ (∀ (a) (→ (Red a)
-  ;                              (Sweet a)))
-  ;                    (Red Apple))
-  ;                '(Sweet Apple))
+  (resolution-KF '((∀ (a) (→ (Red a)
+                             (Sweet a)))
+                   (Red Apple))
+                 '(Sweet Apple))
   )
