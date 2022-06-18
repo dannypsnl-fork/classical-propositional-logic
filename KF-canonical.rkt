@@ -1,7 +1,8 @@
 #lang nanopass
 (provide KF->canonical
          KF-canonical)
-(require "KF-clausal.rkt")
+(require "KF-clausal.rkt"
+         "stable.rkt")
 
 (define (top? e) (eq? e '⊤))
 (define (bot? e) (eq? e '⊥))
@@ -31,14 +32,21 @@
            (∧ e0 e1))
         (+ (∨ e* ...)
            (∧ e* ...))))
-(define-pass clausal-fuse-clause : KF4 (e) -> KF-canonical ()
+(define-pass form-fuse : KF4 (e) -> KF-canonical ()
   (T : Expr (e) -> Expr ()
-     [(∨ (∨ ,[e0] ,[e1]) ,[e2]) `(∨ ,e0 ,e1 ,e2)]
-     [(∨ ,[e0] (∨ ,[e1] ,[e2])) `(∨ ,e0 ,e1 ,e2)]
-     [(∨ ,[e0] ,[e1]) `(∨ ,e0 ,e1)]
-     [(∧ (∧ ,[e0] ,[e1]) ,[e2]) `(∧ ,e0 ,e1 ,e2)]
-     [(∧ ,[e0] (∧ ,[e1] ,[e2])) `(∧ ,e0 ,e1 ,e2)]
-     [(∧ ,[e0] ,[e1]) `(∧ ,e0 ,e1)]))
+     [(∧ ,[e0] ,[e1]) `(∧ ,e0 ,e1)]
+     [(∨ ,[e0] ,[e1]) `(∨ ,e0 ,e1)]))
+(define-pass clausal-fuse-clause : KF-canonical (e) -> KF-canonical ()
+  (C-and : Expr (e) -> * ()
+         [(∧ ,e* ...) e*]
+         [else (list e)])
+  (C-or : Expr (e) -> * ()
+        [(∨ ,e* ...) e*]
+        [else (list e)])
+  (T : Expr (e) -> Expr ()
+     [(∨ ,e* ...) `(∨ ,(apply append (map C-or e*)) ...)]
+     [(∧ ,e* ...) `(∧ ,(apply append (map C-and e*)) ...)])
+  (stable e T unparse-KF-canonical))
 
 (define-pass remove-same-twice-from-clause : KF-canonical (e) -> KF-canonical ()
   (T : Expr (e) -> Expr ()
@@ -70,6 +78,7 @@
                                eliminate-bottom
                                remove-same-twice-from-clause
                                clausal-fuse-clause
+                               form-fuse
                                convert
                                KF->clausal))
 
@@ -86,4 +95,6 @@
   (check-equal? (all '(∨ A (¬ A)))
                 '⊤)
   (check-equal? (all '(∨ A (∨ (¬ A) B)))
-                'B))
+                'B)
+  (check-equal? (all '(∨ A (∨ B (∨ C D))))
+                '(∨ A B C D)))
