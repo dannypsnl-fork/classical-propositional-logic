@@ -43,9 +43,9 @@
   (match* (t1 t2)
     [(_ t2) #:when (symbol? t2)
             (if (or (eqv? t1 t2) (not ((occurs t2) t1)))
-                (hash-set! subst t2 t1)
-                #f
-                )]
+                (begin (hash-set! subst t2 t1)
+                       #t)
+                #f)]
     [(t1 _) #:when (symbol? t1)
             (unify t2 t1)]
     [(`(,fa ,a* ...) `(,fb ,b* ...))
