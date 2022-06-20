@@ -105,9 +105,7 @@
      [(∀ (,x* ...) ,prenex)
       (T prenex (append universal-vars x*))]
      [(∃ (,x* ...) ,[prenex])
-      (subst-skolem prenex (zip x* (map (lambda (x) `(,(gensym 'Skolem) ,universal-vars ...)) x*)))
-      ]
-     )
+      (subst-skolem prenex (zip x* (map (lambda (x) `(,(gensym 'Skolem) ,universal-vars ...)) x*)))])
   (T e '()))
 
 (define-language KF3
