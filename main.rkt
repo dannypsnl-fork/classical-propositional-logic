@@ -21,34 +21,37 @@
         (for ([c (in-combinations (append (set->list kb) (set->list not-q)) 2)])
           (define resolvents (resolve (first c) (second c)))
           (if (set-empty? resolvents)
-              (return (format "~a |- ~a" kb-rules query))
+              (return (format "~a ⊢ ~a" kb-rules query))
               (begin
                 (set! new
                       (set-add new
                                resolvents)
                       ))))
         (if (subset? new kb)
-            (return #f)
+            (return (format "~a ⊬ ~a" kb-rules query))
             (begin
               (loop (set-union kb new)))))))
   resolution)
 
-(define (occurs v t)
+(define ((occurs x) t)
   (match t
-    [`(,t* ...)
-     (ormap (λ (t) (occurs v t)) t*)]
-    [t (equal? v t)]))
+    [`(,f ,t* ...)
+     (ormap (occurs x) t*)]
+    [t (eq? x t)]))
 
-(define (unify t1 t2)
+(define (unify t1 t2 [subst (make-hash)])
   (match* (t1 t2)
-    [(_ t2) #:when (parameter? t2)
-            (if (or (eqv? t1 (t2)) (not (occurs (t2) t1)))
-                (t2 t1)
-                (error (format "~a occurs in ~a" (t2) t1)))]
-    [(t1 _) #:when (parameter? t1)
+    [(_ t2) #:when (symbol? t2)
+            (if (or (eqv? t1 t2) (not ((occurs t2) t1)))
+                (hash-set! subst t2 t1)
+                #f
+                )]
+    [(t1 _) #:when (symbol? t1)
             (unify t2 t1)]
-    [(`(,a* ...) `(,b* ...))
-     (andmap unify a* b*)]
+    [(`(,fa ,a* ...) `(,fb ,b* ...))
+     (if (eq? fa fb)
+         (andmap unify a* b*)
+         #f)]
     [(_ _) (eqv? t1 t2)]))
 
 (module+ main
@@ -61,9 +64,8 @@
                 'A)
 
   (define resolution-KF (make-resolution KF->cnf unify))
-  ;; FIXME: unification should correct this result
   (resolution-KF '((∀ (a) (→ (Red a)
                              (Sweet a)))
-                   (Red Apple))
-                 '(Sweet Apple))
+                   (Red (Apple)))
+                 '(Sweet (Apple)))
   )
