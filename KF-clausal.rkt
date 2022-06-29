@@ -147,7 +147,10 @@
   (check-equal? (all '(→ A (→ B C)))
                 '(∨ (¬ A) (∨ (¬ B) C)))
   (check-equal? (all '(∨ A (∧ B C)))
-                '(∧ (∨ B A) (∨ C A))))
+                '(∧ (∨ B A) (∨ C A)))
+  ; due to skolemize, the universal variables will be bring into generated Skolem function
+  (check-match (all '(∀ (b) (∃ (a) (D a))))
+               (list D (list Skolem6938 _))))
 
 (module+ main
   (all '(∃ (a) (∀ (a) (D a))))
